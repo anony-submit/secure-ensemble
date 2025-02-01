@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package secure_ensemble;
+option go_package = "logistic_regression/go_inference/proto";
+
+// CSP Service definition
+service CSPService {
+  // Enrollment phase
+  rpc EnrollModel (EnrollModelRequest) returns (EnrollModelResponse) {}
+  
+  // Inference phase
+  rpc RequestInference (InferenceRequest) returns (InferenceResponse) {}
+  
+  // Decryption phase
+  rpc RequestPartialDecryption (PartialDecryptionRequest) returns (PartialDecryptionResponse) {}
+}
+
+// Data Owner Service definition
+service DataOwnerService {
+  // Partial decryption service
+  rpc PerformPartialDecryption (PartialDecryptionRequest) returns (PartialDecryptionResponse) {}
+}
+
+// Data structures for model enrollment
+message EnrollModelRequest {
+  string owner_id = 1;
+  bytes encrypted_weights = 2;
+  bytes encrypted_intercept = 3;
+  bytes public_key = 4;
+  bytes relinearization_key = 5;
+  repeated bytes rotation_keys = 6; 
+  int64 serialization_start_time = 7;
+}
+
+message EnrollModelResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Data structures for inference
+message InferenceRequest {
+  string client_id = 1;
+  bytes encrypted_data = 2;
+  bytes public_key = 3;
+  bytes relinearization_key = 4;
+  repeated bytes rotation_keys = 5; 
+  int64 serialization_start_time = 6;
+}
+
+message InferenceResponse {
+  bytes encrypted_result = 1;
+  int64 decryption_start_time = 2;
+}
+
+// Data structures for partial decryption
+message PartialDecryptionRequest {
+  bytes encrypted_result = 1;
+  string party_id = 2;
+  int64 serialization_start_time = 3;
+}
+
+message PartialDecryptionResponse {
+  bytes partial_decryption = 1;
+}

@@ -1,0 +1,12 @@
+{
+    "individual_accuracies": [
+        0.8421052631578947,
+        0.9736842105263158
+    ],
+    "mean_accuracy": 0.9078947368421053,
+    "ensemble_accuracies": {
+        "hard_voting": 0.9473684210526315,
+        "soft_voting": 0.9736842105263158,
+        "linear_soft_voting": 0.9736842105263158
+    }
+}

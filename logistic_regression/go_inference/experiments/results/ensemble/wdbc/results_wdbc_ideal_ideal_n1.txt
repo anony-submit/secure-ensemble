@@ -1,0 +1,28 @@
+
+=== Experiment Results ===
+Dataset: wdbc
+Party Count: 1
+Split: ideal
+Imbalance: ideal
+
+Accuracy:
+  Soft Voting:        97.37% (111/114 correct)
+  Logit Soft Voting:  97.37% (111/114 correct)
+
+Client Times:
+  Key Generation:     294.073416ms
+  Data Encryption:    9.445834ms
+  Data Transfer:      236.686ms
+  Soft Voting Dec:    13.180542ms
+  Logit Soft Dec:     13.155625ms
+
+Data Owner Times:
+  Key Generation:     309.00 ± 0.00 ms
+  Model Encryption:   19.00 ± 0.00 ms
+  Model Transfer:     204.061ms
+  Partial Decryption: 2.00 ± 0.00 ms
+
+CSP Times:
+  Soft Voting:        1.560031459s
+  Logit Soft Voting:  1.533076292s
+  Total Decryption:   25.327ms

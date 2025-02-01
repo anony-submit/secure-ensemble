@@ -1,0 +1,28 @@
+
+=== Experiment Results ===
+Dataset: pima
+Party Count: 2
+Split: horizontal
+Imbalance: balanced
+
+Accuracy:
+  Soft Voting:        75.97% (117/154 correct)
+  Logit Soft Voting:  75.97% (117/154 correct)
+
+Client Times:
+  Key Generation:     214.622542ms
+  Data Encryption:    9.149583ms
+  Data Transfer:      148.448ms
+  Soft Voting Dec:    9.943541ms
+  Logit Soft Dec:     10.767875ms
+
+Data Owner Times:
+  Key Generation:     221.00 ± 10.00 ms
+  Model Encryption:   18.00 ± 0.00 ms
+  Model Transfer:     110.785ms
+  Partial Decryption: 2.00 ± 0.00 ms
+
+CSP Times:
+  Soft Voting:        2.605630666s
+  Logit Soft Voting:  2.100623958s
+  Total Decryption:   27.171ms

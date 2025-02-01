@@ -1,0 +1,28 @@
+
+=== Experiment Results ===
+Dataset: heart_disease
+Party Count: 20
+Split: horizontal
+Imbalance: balanced
+
+Accuracy:
+  Soft Voting:        88.52% (54/61 correct)
+  Logit Soft Voting:  88.52% (54/61 correct)
+
+Client Times:
+  Key Generation:     249.494333ms
+  Data Encryption:    9.251875ms
+  Data Transfer:      175.281ms
+  Soft Voting Dec:    11.028791ms
+  Logit Soft Dec:     10.844833ms
+
+Data Owner Times:
+  Key Generation:     251.00 ± 2.00 ms
+  Model Encryption:   24.00 ± 3.00 ms
+  Model Transfer:     128.225ms
+  Partial Decryption: 3.00 ± 0.00 ms
+
+CSP Times:
+  Soft Voting:        27.81772725s
+  Logit Soft Voting:  18.404692584s
+  Total Decryption:   359.6625ms

@@ -1,0 +1,3 @@
+[submodule "snu-mghe"]
+	path = snu-mghe
+	url = https://github.com/anony-submit/snu-mghe.git
