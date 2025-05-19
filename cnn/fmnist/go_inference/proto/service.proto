@@ -1,0 +1,56 @@
+syntax = "proto3";
+package fmnist_ensemble;
+option go_package = "cnn/fmnist/go_inference/proto";
+
+service CSPService {
+    rpc EnrollModel (EnrollModelRequest) returns (EnrollModelResponse) {}
+    rpc RequestInference (InferenceRequest) returns (InferenceResponse) {}
+}
+
+service DataOwnerService {
+    rpc PerformPartialDecryption (PartialDecryptionRequest) returns (PartialDecryptionResponse) {}
+}
+
+message EnrollModelRequest {
+    string owner_id = 1;
+    bytes conv_weights = 2;
+    bytes conv_bias = 3;
+    repeated bytes fc1_weights = 4;
+    bytes fc1_bias = 5;
+    bytes fc2_weights = 6;
+    bytes fc2_bias = 7;
+    bytes public_key = 8;
+    bytes relinearization_key = 9;
+    repeated bytes rotation_keys = 10;
+    int64 serialization_start_time = 11; 
+}
+
+
+message EnrollModelResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message InferenceRequest {
+    string client_id = 1;
+    bytes encrypted_input = 2;
+    bytes public_key = 3;
+    bytes relinearization_key = 4;
+    repeated bytes rotation_keys = 5;
+    int64 serialization_start_time = 6; 
+}
+
+message InferenceResponse {
+    bytes encrypted_result = 1;
+    int64 decryption_protocol_start_time = 2;
+}
+
+message PartialDecryptionRequest {
+    bytes encrypted_result = 1;
+    string party_id = 2;
+    int64 serialization_start_time = 3;
+}
+
+message PartialDecryptionResponse {
+    bytes partial_decryption = 1;
+}

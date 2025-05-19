@@ -1,0 +1,57 @@
+syntax = "proto3";
+package svhn_ensemble;
+option go_package = "secure-ensemble/proto";
+
+service CSPService {
+    rpc EnrollModel (EnrollModelRequest) returns (EnrollModelResponse) {}
+    rpc RequestInference (InferenceRequest) returns (InferenceResponse) {}
+}
+
+service DataOwnerService {
+    rpc PerformPartialDecryption (PartialDecryptionRequest) returns (PartialDecryptionResponse) {}
+}
+
+message EnrollModelRequest {
+    string owner_id = 1;
+    repeated bytes conv1_weights = 2;
+    bytes conv1_bias = 3;
+    repeated bytes conv2_weights = 4;
+    bytes conv2_bias = 5;
+    repeated bytes fc1_weights = 6;
+    bytes fc1_bias = 7;
+    bytes fc2_weights = 8;
+    bytes fc2_bias = 9;
+    bytes public_key = 10;
+    bytes relinearization_key = 11;
+    repeated bytes rotation_keys = 12;
+    int64 request_start_time = 13;
+}
+
+message EnrollModelResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message InferenceRequest {
+    string client_id = 1;
+    repeated bytes encrypted_input = 2;
+    bytes public_key = 3;
+    bytes relinearization_key = 4;
+    repeated bytes rotation_keys = 5;
+    int64 request_start_time = 6;
+}
+
+message InferenceResponse {
+    bytes encrypted_result = 1;
+    int64 decryption_protocol_start_time = 2;
+}
+
+message PartialDecryptionRequest {
+    bytes encrypted_result = 1;
+    string party_id = 2;
+    int64 request_start_time = 3;
+}
+
+message PartialDecryptionResponse {
+    bytes partial_decryption = 1;
+}

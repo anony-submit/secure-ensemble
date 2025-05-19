@@ -1,0 +1,6 @@
+[submodule "snu-mghe"]
+	path = snu-mghe
+	url = https://github.com/anony-submit/snu-mghe.git
+[submodule "baseline/cnn/external"]
+	path = baseline/cnn/external
+	url = https://github.com/anony-submit/FedGen.git

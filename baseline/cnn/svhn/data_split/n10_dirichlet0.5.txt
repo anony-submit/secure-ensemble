@@ -1,0 +1,122 @@
+Dataset distribution for dirichlet0.5:
+
+Split 1:
+Class 0: 265
+Class 1: 1059
+Class 2: 1
+Class 3: 1910
+Class 4: 817
+Class 5: 176
+Class 6: 1218
+Class 7: 3043
+Class 8: 355
+Class 9: 717
+
+Split 2:
+Class 0: 1248
+Class 1: 230
+Class 2: 100
+Class 3: 140
+Class 4: 1943
+Class 5: 54
+Class 6: 0
+Class 7: 35
+Class 8: 432
+Class 9: 1732
+
+Split 3:
+Class 0: 46
+Class 1: 561
+Class 2: 146
+Class 3: 35
+Class 4: 17
+Class 5: 87
+Class 6: 209
+Class 7: 846
+Class 8: 91
+Class 9: 29
+
+Split 4:
+Class 0: 6
+Class 1: 107
+Class 2: 453
+Class 3: 9
+Class 4: 946
+Class 5: 2293
+Class 6: 17
+Class 7: 94
+Class 8: 1651
+Class 9: 11
+
+Split 5:
+Class 0: 712
+Class 1: 1040
+Class 2: 5435
+Class 3: 1420
+Class 4: 994
+Class 5: 448
+Class 6: 3027
+Class 7: 226
+Class 8: 52
+Class 9: 0
+
+Split 6:
+Class 0: 0
+Class 1: 11
+Class 2: 3645
+Class 3: 0
+Class 4: 343
+Class 5: 978
+Class 6: 324
+Class 7: 719
+Class 8: 794
+Class 9: 340
+
+Split 7:
+Class 0: 2076
+Class 1: 9122
+Class 2: 558
+Class 3: 1047
+Class 4: 0
+Class 5: 1683
+Class 6: 159
+Class 7: 13
+Class 8: 222
+Class 9: 519
+
+Split 8:
+Class 0: 62
+Class 1: 250
+Class 2: 11
+Class 3: 1414
+Class 4: 1
+Class 5: 998
+Class 6: 297
+Class 7: 172
+Class 8: 6
+Class 9: 674
+
+Split 9:
+Class 0: 175
+Class 1: 1437
+Class 2: 3
+Class 3: 2345
+Class 4: 124
+Class 5: 105
+Class 6: 468
+Class 7: 2
+Class 8: 1347
+Class 9: 118
+
+Split 10:
+Class 0: 358
+Class 1: 44
+Class 2: 233
+Class 3: 177
+Class 4: 2273
+Class 5: 60
+Class 6: 8
+Class 7: 445
+Class 8: 95
+Class 9: 519
+

@@ -1,0 +1,4 @@
+Algorithm 	NumUsers 	Alpha       	BestRound 	Correct/Total  	Accuracy  
+FedProx   	5        	balanced    	82        	71/100            	0.7100
+FedProx   	5        	0.5         	120       	63/100            	0.6300
+FedProx   	5        	0.1         	59        	48/100            	0.4800

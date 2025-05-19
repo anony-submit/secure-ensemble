@@ -1,0 +1,61 @@
+Class distribution per split:
+
+Split 1:
+Class 0: 699
+Class 1: 1
+Class 2: 2119
+Class 3: 6
+Class 4: 1
+Class 5: 4919
+Class 6: 3259
+Class 7: 0
+Class 8: 1039
+Class 9: 753
+
+Split 2:
+Class 0: 3287
+Class 1: 4667
+Class 2: 460
+Class 3: 5039
+Class 4: 98
+Class 5: 753
+Class 6: 239
+Class 7: 1262
+Class 8: 2470
+Class 9: 1
+
+Split 3:
+Class 0: 121
+Class 1: 140
+Class 2: 1122
+Class 3: 138
+Class 4: 143
+Class 5: 15
+Class 6: 60
+Class 7: 1703
+Class 8: 22
+Class 9: 2
+
+Split 4:
+Class 0: 16
+Class 1: 394
+Class 2: 215
+Class 3: 793
+Class 4: 443
+Class 5: 4
+Class 6: 16
+Class 7: 2826
+Class 8: 1203
+Class 9: 271
+
+Split 5:
+Class 0: 1877
+Class 1: 798
+Class 2: 2084
+Class 3: 24
+Class 4: 5315
+Class 5: 309
+Class 6: 2426
+Class 7: 209
+Class 8: 1266
+Class 9: 4973

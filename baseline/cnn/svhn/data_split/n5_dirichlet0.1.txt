@@ -1,0 +1,62 @@
+Dataset distribution for dirichlet0.1:
+
+Split 1:
+Class 0: 5
+Class 1: 0
+Class 2: 5954
+Class 3: 52
+Class 4: 0
+Class 5: 4581
+Class 6: 2
+Class 7: 2330
+Class 8: 2015
+Class 9: 0
+
+Split 2:
+Class 0: 4337
+Class 1: 13840
+Class 2: 3
+Class 3: 0
+Class 4: 0
+Class 5: 2278
+Class 6: 5723
+Class 7: 0
+Class 8: 0
+Class 9: 2151
+
+Split 3:
+Class 0: 0
+Class 1: 0
+Class 2: 315
+Class 3: 8270
+Class 4: 4
+Class 5: 22
+Class 6: 0
+Class 7: 962
+Class 8: 0
+Class 9: 2457
+
+Split 4:
+Class 0: 0
+Class 1: 0
+Class 2: 0
+Class 3: 0
+Class 4: 26
+Class 5: 0
+Class 6: 0
+Class 7: 2301
+Class 8: 375
+Class 9: 50
+
+Split 5:
+Class 0: 606
+Class 1: 21
+Class 2: 4313
+Class 3: 175
+Class 4: 7428
+Class 5: 1
+Class 6: 2
+Class 7: 2
+Class 8: 2655
+Class 9: 1
+
