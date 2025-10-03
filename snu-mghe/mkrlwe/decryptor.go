@@ -1,15 +1,17 @@
 package mkrlwe
 
-import "github.com/ldsec/lattigo/v2/ring"
-import "github.com/ldsec/lattigo/v2/rlwe"
-import "github.com/ldsec/lattigo/v2/utils"
+import (
+	"github.com/ldsec/lattigo/v2/ring"
+	"github.com/ldsec/lattigo/v2/rlwe"
+	"github.com/ldsec/lattigo/v2/utils"
+)
 
-// decryptor is a structure used to decrypt ciphertext. It stores the secret-key.
 type Decryptor struct {
-	params Parameters
-	ringQ  *ring.Ring
-	pool   *ring.Poly
-	sk     *SecretKey
+	params  Parameters
+	ringQ   *ring.Ring
+	pool    *ring.Poly
+	sk      *SecretKey
+	sampler ring.Sampler
 }
 
 // NewDecryptor instantiates a new generic RLWE Decryptor.
@@ -19,6 +21,17 @@ func NewDecryptor(params Parameters) *Decryptor {
 		params: params,
 		ringQ:  params.RingQ(),
 		pool:   params.RingQ().NewPoly(),
+	}
+}
+
+func NewDecryptorWithGaussianNoise(params Parameters, sigma float64, bound int) *Decryptor {
+	prng, _ := utils.NewPRNG()
+	sampler := ring.NewGaussianSampler(prng, params.RingQ(), sigma, bound)
+	return &Decryptor{
+		params:  params,
+		ringQ:   params.RingQ(),
+		pool:    params.RingQ().NewPoly(),
+		sampler: sampler,
 	}
 }
 
@@ -40,6 +53,51 @@ func (decryptor *Decryptor) PartialDecrypt(ct *Ciphertext, sk *SecretKey) {
 
 	ringQ.AddLvl(level, ct.Value["0"], ct.Value[id], ct.Value["0"])
 	delete(ct.Value, id)
+}
+
+// GenShare computes noisy partial decryption share for one party
+func (decryptor *Decryptor) GenShare(ct *Ciphertext, sk *SecretKey) *ring.Poly {
+	ringQ := decryptor.ringQ
+	level := ct.Level()
+
+	tmp := ringQ.NewPoly()
+	if ct.Value[sk.ID].IsNTT {
+		ringQ.MulCoeffsMontgomeryLvl(level, ct.Value[sk.ID], sk.Value.Q, tmp)
+	} else {
+		ringQ.NTTLvl(level, ct.Value[sk.ID], tmp)
+		ringQ.MulCoeffsMontgomeryLvl(level, tmp, sk.Value.Q, tmp)
+		ringQ.InvNTTLvl(level, tmp, tmp)
+	}
+
+	noise := ringQ.NewPoly()
+	decryptor.sampler.Read(noise)
+
+	if ct.Value[sk.ID].IsNTT {
+		ringQ.NTTLvl(level, noise, noise)
+	}
+
+	ringQ.AddLvl(level, tmp, noise, tmp)
+
+	return tmp
+}
+
+func (decryptor *Decryptor) AggregateSharesAndDrop(ct *Ciphertext, shares map[string]*ring.Poly) {
+	ringQ := decryptor.ringQ
+	level := ct.Level()
+
+	agg := ringQ.NewPoly()
+	for _, sh := range shares {
+		ringQ.AddLvl(level, agg, sh, agg)
+	}
+	// add aggregated share to c0
+	ringQ.AddLvl(level, ct.Value["0"], agg, ct.Value["0"])
+
+	// drop only the terms for which we added c_i*s_i (i.e., keys in shares)
+	for id := range shares {
+		if id != "0" {
+			delete(ct.Value, id)
+		}
+	}
 }
 
 // Decrypt decrypts the ciphertext with given secretkey set and write the result in ptOut.

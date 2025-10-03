@@ -1,8 +1,10 @@
 package mkckks
 
-import "github.com/ldsec/lattigo/v2/ckks"
-import "github.com/ldsec/lattigo/v2/ring"
-import "github.com/anony-submit/snu-mghe/mkrlwe"
+import (
+	"github.com/anony-submit/snu-mghe/mkrlwe"
+	"github.com/ldsec/lattigo/v2/ckks"
+	"github.com/ldsec/lattigo/v2/ring"
+)
 
 type Decryptor struct {
 	*mkrlwe.Decryptor
@@ -24,9 +26,29 @@ func NewDecryptor(params Parameters) *Decryptor {
 	return ret
 }
 
+func NewDecryptorWithGaussianNoise(params Parameters, sigma float64, bound int) *Decryptor {
+	ckksParams, _ := ckks.NewParameters(params.Parameters.Parameters, params.LogSlots(), params.Scale())
+
+	ret := new(Decryptor)
+	ret.Decryptor = mkrlwe.NewDecryptorWithGaussianNoise(params.Parameters, sigma, bound)
+	ret.encoder = ckks.NewEncoder(ckksParams)
+	ret.params = params
+	ret.ptxtPool = ckks.NewPlaintext(ckksParams, params.MaxLevel(), params.Scale())
+	ret.ptxtPool.Value.IsNTT = false
+	return ret
+}
+
 // PartialDecrypt partially decrypts the ct with single secretkey sk and update result inplace
 func (dec *Decryptor) PartialDecrypt(ct *Ciphertext, sk *mkrlwe.SecretKey) {
 	dec.Decryptor.PartialDecrypt(ct.Ciphertext, sk)
+}
+
+func (dec *Decryptor) GenShare(ct *Ciphertext, sk *mkrlwe.SecretKey) *ring.Poly {
+	return dec.Decryptor.GenShare(ct.Ciphertext, sk)
+}
+
+func (dec *Decryptor) AggregateSharesAndDrop(ct *Ciphertext, shares map[string]*ring.Poly) {
+	dec.Decryptor.AggregateSharesAndDrop(ct.Ciphertext, shares)
 }
 
 // Decrypt decrypts the ciphertext with given secretkey set and write the result in ptOut.
