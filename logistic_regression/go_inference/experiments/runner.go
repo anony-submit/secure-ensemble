@@ -159,21 +159,21 @@ func enrollModels(dataOwners []*dataowner.DataOwner, config ExperimentConfig) er
 	// errChan := make(chan error, len(dataOwners))
 
 	// for i, owner := range dataOwners {
-	// 	wg.Add(1)
-	// 	go func(index int, owner *dataowner.DataOwner) {
-	// 		defer wg.Done()
-	// 		if err := owner.EnrollModel(models[index].Weights, models[index].Intercept); err != nil {
-	// 			errChan <- fmt.Errorf("failed to enroll model for owner %d: %v", index, err)
-	// 		}
-	// 	}(i, owner)
+	//    wg.Add(1)
+	//    go func(index int, owner *dataowner.DataOwner) {
+	//       defer wg.Done()
+	//       if err := owner.EnrollModel(models[index].Weights, models[index].Intercept); err != nil {
+	//          errChan <- fmt.Errorf("failed to enroll model for owner %d: %v", index, err)
+	//       }
+	//    }(i, owner)
 	// }
 
 	// wg.Wait()
 	// close(errChan)
 	// for err := range errChan {
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	//    if err != nil {
+	//       return err
+	//    }
 	// }
 	for i, owner := range dataOwners {
 		if err := owner.EnrollModel(models[i].Weights, models[i].Intercept); err != nil {
@@ -242,34 +242,34 @@ func writeResultsToFile(config ExperimentConfig, results map[string]ExperimentRe
 
 func formatResults(config ExperimentConfig, results map[string]ExperimentResult) string {
 	return fmt.Sprintf(`
-=== Experiment Results ===
-Dataset: %s
-Party Count: %d
-Split: %s
-Imbalance: %s
-
-Accuracy:
-  Soft Voting:        %.2f%% (%d/%d correct)
-  Logit Soft Voting:  %.2f%% (%d/%d correct)
-
-Client Times:
-  Key Generation:     %v
-  Data Encryption:    %v
-  Data Transfer:      %v
-  Soft Voting Dec:    %v
-  Logit Soft Dec:     %v
-
-Data Owner Times:
-  Key Generation:     %.2f ± %.2f ms
-  Model Encryption:   %.2f ± %.2f ms
-  Model Transfer:     %v
-  Partial Decryption: %.2f ± %.2f ms
-
-CSP Times:
-  Soft Voting:        %v
-  Logit Soft Voting:  %v
-  Total Decryption:   %v
-`,
+ === Experiment Results ===
+ Dataset: %s
+ Party Count: %d
+ Split: %s
+ Imbalance: %s
+ 
+ Accuracy:
+   Soft Voting:        %.2f%% (%d/%d correct)
+   Logit Soft Voting:  %.2f%% (%d/%d correct)
+ 
+ Client Times:
+   Key Generation:     %v
+   Data Encryption:    %v
+   Data Transfer:      %v
+   Soft Voting Dec:    %v
+   Logit Soft Dec:     %v
+ 
+ Data Owner Times:
+   Key Generation:     %.2f ± %.2f ms
+   Model Encryption:   %.2f ± %.2f ms
+   Model Transfer:     %v
+   Partial Decryption: %.2f ± %.2f ms
+ 
+ CSP Times:
+   Soft Voting:        %v
+   Logit Soft Voting:  %v
+   Total Decryption:   %v
+ `,
 
 		config.DataSet,
 		config.PartyCount,
@@ -494,7 +494,7 @@ func runExperiment(t *testing.T, config ExperimentConfig) {
 				}{
 					SoftVotingCompute:      server.cspServer.GetTiming().SoftVotingCompute,
 					LogitSoftVotingCompute: server.cspServer.GetTiming().LogitSoftVotingCompute,
-					TotalDecryptionTime:    client.GetTiming().TotalDecryptionTime, // CSP에서 Client로 변경
+					TotalDecryptionTime:    client.GetTiming().TotalDecryptionTime,
 				},
 			},
 			Accuracy: softAccuracy,

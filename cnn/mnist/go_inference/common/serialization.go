@@ -1,11 +1,14 @@
 package common
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"secure-ensemble/pkg/serialization"
 
 	"github.com/anony-submit/snu-mghe/mkckks"
+	"github.com/ldsec/lattigo/v2/ring"
 )
 
 type MNISTModelBytes struct {
@@ -86,4 +89,40 @@ func SerializeMNISTResult(result *mkckks.Ciphertext) ([]byte, error) {
 
 func DeserializeMNISTResult(data []byte, params mkckks.Parameters) (*mkckks.Ciphertext, error) {
 	return serialization.DeserializeCiphertext(data, params)
+}
+
+// PolyBytes represents the serialized form of a ring.Poly
+type PolyBytes struct {
+	Value []byte
+}
+
+// SerializePoly serializes a ring.Poly
+func SerializePoly(p *ring.Poly) ([]byte, error) {
+	data := make([]byte, p.GetDataLen(true))
+	if _, err := p.WriteTo(data); err != nil {
+		return nil, fmt.Errorf("failed to serialize poly: %v", err)
+	}
+
+	polyBytes := &PolyBytes{Value: data}
+
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(polyBytes); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// DeserializePoly deserializes bytes into a ring.Poly
+func DeserializePoly(data []byte, ringQ *ring.Ring) (*ring.Poly, error) {
+	var polyBytes PolyBytes
+	if err := gob.NewDecoder(bytes.NewBuffer(data)).Decode(&polyBytes); err != nil {
+		return nil, err
+	}
+
+	p := ringQ.NewPoly()
+	if _, err := p.DecodePolyNew(polyBytes.Value); err != nil {
+		return nil, fmt.Errorf("failed to deserialize poly: %v", err)
+	}
+
+	return p, nil
 }

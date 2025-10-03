@@ -157,6 +157,158 @@ func saveResults(config ExperimentConfig, results ExperimentResults) error {
 	return nil
 }
 
+// func RunExperiment(config ExperimentConfig) (ExperimentResults, error) {
+// 	fmt.Printf("\n=== Starting MNIST Ensemble Experiment ===\n")
+// 	fmt.Printf("Configuration: %d data owners, %d test samples, distribution: %s\n",
+// 		config.NumDataOwners, config.NumTestSamples, config.Distribution)
+
+// 	mkParams := setupParameters()
+// 	var timing common.TimingInfo
+
+// 	fmt.Println("\n[Step 1] Starting CSP server...")
+// 	cspServer := server.NewCSPServer(mkParams)
+// 	cspAddress, err := common.GetAvailableAddress()
+// 	if err != nil {
+// 		return ExperimentResults{}, fmt.Errorf("failed to get address for CSP: %v", err)
+// 	}
+// 	if err := cspServer.Start(cspAddress); err != nil {
+// 		return ExperimentResults{}, fmt.Errorf("failed to start CSP server: %v", err)
+// 	}
+
+// 	cleanupFuncs := make([]func(), 0)
+// 	cleanupFuncs = append(cleanupFuncs, func() {
+// 		if err := cspServer.Close(); err != nil {
+// 			fmt.Printf("Error closing CSP server: %v\n", err)
+// 		}
+// 	})
+
+// 	defer func() {
+// 		for _, cleanup := range cleanupFuncs {
+// 			cleanup()
+// 		}
+// 		time.Sleep(500 * time.Millisecond)
+// 	}()
+
+// 	fmt.Println("✓ CSP server started successfully")
+
+// 	fmt.Println("\n[Step 2] Setting up Data Owners...")
+// 	dataOwners := make([]*dataowner.DataOwner, config.NumDataOwners)
+
+// 	for i := 0; i < config.NumDataOwners; i++ {
+// 		ownerID := fmt.Sprintf("owner%d", i)
+
+// 		address, err := common.GetAvailableAddress()
+// 		if err != nil {
+// 			return ExperimentResults{}, fmt.Errorf("failed to get address for owner %d: %v", i, err)
+// 		}
+
+// 		owner, err := dataowner.NewDataOwner(ownerID, mkParams, cspAddress)
+// 		if err != nil {
+// 			return ExperimentResults{}, fmt.Errorf("failed to create data owner %d: %v", i, err)
+// 		}
+
+// 		if err := owner.GenerateKeys(); err != nil {
+// 			return ExperimentResults{}, fmt.Errorf("failed to generate keys for owner %d: %v", i, err)
+// 		}
+
+// 		cleanup, err := owner.StartServer(address)
+// 		if err != nil {
+// 			return ExperimentResults{}, fmt.Errorf("failed to start owner server %d: %v", i, err)
+// 		}
+// 		cleanupFuncs = append(cleanupFuncs, cleanup)
+
+// 		if err := cspServer.ConnectToDataOwner(ownerID, address); err != nil {
+// 			return ExperimentResults{}, fmt.Errorf("failed to connect CSP to owner %d: %v", i, err)
+// 		}
+
+// 		dataOwners[i] = owner
+// 	}
+// 	fmt.Printf("✓ All %d Data Owners created and started successfully\n", config.NumDataOwners)
+
+// 	fmt.Println("\n[Step 3] Loading and enrolling models...")
+// 	for i := 0; i < config.NumDataOwners; i++ {
+// 		fc1w, fc1b, fc2w, fc2b, err := loadModelParams(config, i)
+// 		if err != nil {
+// 			return ExperimentResults{}, fmt.Errorf("failed to load model params for owner %d: %v", i, err)
+// 		}
+
+// 		if err := dataOwners[i].EnrollModel(fc1w, fc1b, fc2w, fc2b); err != nil {
+// 			return ExperimentResults{}, fmt.Errorf("failed to enroll model for owner %d: %v", i, err)
+// 		}
+// 	}
+// 	fmt.Println("✓ All models loaded and enrolled successfully")
+
+// 	fmt.Println("\n[Step 4] Setting up Client...")
+// 	testClient, err := client.NewClient("client", mkParams, cspAddress)
+// 	if err != nil {
+// 		return ExperimentResults{}, fmt.Errorf("failed to create client: %v", err)
+// 	}
+
+// 	if err := testClient.GenerateKeys(); err != nil {
+// 		return ExperimentResults{}, fmt.Errorf("failed to generate client keys: %v", err)
+// 	}
+// 	fmt.Println("✓ Client setup completed successfully")
+
+// 	fmt.Println("\n[Step 5] Performing inference...")
+// 	correctCount := 0
+
+// 	for _, owner := range dataOwners {
+// 		ownerTiming := owner.GetTiming()
+// 		timing.DataOwnerKeyGenStats = ownerTiming.KeyGenStats
+// 		timing.ModelEncryptionStats = ownerTiming.ModelEncryptionStats
+// 		timing.PartialDecryptionTime = ownerTiming.PartialDecryptionTime
+// 	}
+
+// 	for i := 0; i < config.NumTestSamples; i++ {
+// 		if i%10 == 0 {
+// 			fmt.Printf("Processing test sample %d/%d\n", i+1, config.NumTestSamples)
+// 		}
+
+// 		input, label, err := testClient.LoadTestData(i)
+// 		if err != nil {
+// 			return ExperimentResults{}, fmt.Errorf("failed to load test data %d: %v", i, err)
+// 		}
+
+// 		scores, err := testClient.RequestInference(input)
+// 		if err != nil {
+// 			return ExperimentResults{}, fmt.Errorf("inference failed for sample %d: %v", i, err)
+// 		}
+
+// 		predictedClass := getPredictedClass(scores)
+// 		if predictedClass == label {
+// 			correctCount++
+// 		}
+// 		// fmt.Printf("\npredict: %d", predictedClass)
+// 		// fmt.Printf("\nreal: %d\n", label)
+// 	}
+
+// 	fmt.Println("\n[Step 6] Collecting timing information...")
+// 	cspTiming := cspServer.GetTiming()
+// 	timing.InferenceStats = cspTiming.InferenceStats
+// 	timing.EnsembleStats = cspTiming.EnsembleStats
+// 	timing.TotalComputeStats = cspTiming.TotalComputeStats
+// 	timing.ClientTransferStats = cspTiming.ClientTransferStats
+// 	timing.DataOwnerTransferTime = cspTiming.DataOwnerTransferTime
+
+// 	clientTiming := testClient.GetTiming()
+// 	timing.DataEncryptionStats = clientTiming.DataEncryptionStats
+// 	timing.FinalDecryptionStats = clientTiming.DecryptionStats
+// 	timing.TotalDecryptionStats = clientTiming.TotalDecryptionStats
+// 	timing.ClientKeyGenStats = clientTiming.KeyGenStats
+
+// 	results := ExperimentResults{
+// 		Config:   config,
+// 		Timing:   timing,
+// 		Accuracy: float64(correctCount) / float64(config.NumTestSamples) * 100,
+// 	}
+
+// 	if err := saveResults(config, results); err != nil {
+// 		return results, fmt.Errorf("failed to save results: %v", err)
+// 	}
+
+// 	return results, nil
+// }
+
 func RunExperiment(config ExperimentConfig) (ExperimentResults, error) {
 	fmt.Printf("\n=== Starting MNIST Ensemble Experiment ===\n")
 	fmt.Printf("Configuration: %d data owners, %d test samples, distribution: %s\n",
@@ -252,13 +404,6 @@ func RunExperiment(config ExperimentConfig) (ExperimentResults, error) {
 	fmt.Println("\n[Step 5] Performing inference...")
 	correctCount := 0
 
-	for _, owner := range dataOwners {
-		ownerTiming := owner.GetTiming()
-		timing.DataOwnerKeyGenStats = ownerTiming.KeyGenStats
-		timing.ModelEncryptionStats = ownerTiming.ModelEncryptionStats
-		timing.PartialDecryptionTime = ownerTiming.PartialDecryptionTime
-	}
-
 	for i := 0; i < config.NumTestSamples; i++ {
 		if i%10 == 0 {
 			fmt.Printf("Processing test sample %d/%d\n", i+1, config.NumTestSamples)
@@ -278,11 +423,17 @@ func RunExperiment(config ExperimentConfig) (ExperimentResults, error) {
 		if predictedClass == label {
 			correctCount++
 		}
-		// fmt.Printf("\npredict: %d", predictedClass)
-		// fmt.Printf("\nreal: %d\n", label)
 	}
 
 	fmt.Println("\n[Step 6] Collecting timing information...")
+
+	for _, owner := range dataOwners {
+		ownerTiming := owner.GetTiming()
+		timing.DataOwnerKeyGenStats = ownerTiming.KeyGenStats
+		timing.ModelEncryptionStats = ownerTiming.ModelEncryptionStats
+		timing.PartialDecryptionTime = ownerTiming.PartialDecryptionTime
+	}
+
 	cspTiming := cspServer.GetTiming()
 	timing.InferenceStats = cspTiming.InferenceStats
 	timing.EnsembleStats = cspTiming.EnsembleStats

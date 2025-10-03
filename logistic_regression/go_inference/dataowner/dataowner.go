@@ -200,6 +200,43 @@ func (s *DataOwnerServer) PerformPartialDecryption(ctx context.Context, req *pb.
 	return s.dataOwner.PerformPartialDecryption(ctx, req)
 }
 
+func (d *DataOwner) PerformPartialDecryptionShare(
+	ctx context.Context,
+	req *pb.PartialDecryptionRequest,
+) (*pb.PartialDecryptionShareResponse, error) {
+
+	computeStart := time.Now()
+	encResult, err := serialization.DeserializeCiphertext(req.EncryptedResult, d.mkParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deserialize encrypted result: %v", err)
+	}
+
+	// noise flooding decryptor
+	decryptor := mkckks.NewDecryptorWithGaussianNoise(d.mkParams, 3.2, 19)
+
+	share := decryptor.GenShare(encResult, d.sk)
+
+	shareBytes, err := serialization.SerializePoly(share)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize share: %v", err)
+	}
+
+	d.timing.PartialDecryption = time.Since(computeStart)
+
+	return &pb.PartialDecryptionShareResponse{
+		PartyId: req.PartyId,
+		Share:   shareBytes,
+	}, nil
+}
+
+// server wrapper
+func (s *DataOwnerServer) PerformPartialDecryptionShare(
+	ctx context.Context,
+	req *pb.PartialDecryptionRequest,
+) (*pb.PartialDecryptionShareResponse, error) {
+	return s.dataOwner.PerformPartialDecryptionShare(ctx, req)
+}
+
 func (d *DataOwner) StartServer(address string) (func(), error) {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {

@@ -9,6 +9,7 @@ service CSPService {
 
 service DataOwnerService {
     rpc PerformPartialDecryption (PartialDecryptionRequest) returns (PartialDecryptionResponse) {}
+    rpc PerformPartialDecryptionShare (PartialDecryptionRequest) returns (PartialDecryptionShareResponse) {}
 }
 
 message EnrollModelRequest {
@@ -22,9 +23,8 @@ message EnrollModelRequest {
     bytes public_key = 8;
     bytes relinearization_key = 9;
     repeated bytes rotation_keys = 10;
-    int64 serialization_start_time = 11; 
+    int64 serialization_start_time = 11;
 }
-
 
 message EnrollModelResponse {
     bool success = 1;
@@ -37,7 +37,7 @@ message InferenceRequest {
     bytes public_key = 3;
     bytes relinearization_key = 4;
     repeated bytes rotation_keys = 5;
-    int64 serialization_start_time = 6; 
+    int64 serialization_start_time = 6;
 }
 
 message InferenceResponse {
@@ -53,4 +53,9 @@ message PartialDecryptionRequest {
 
 message PartialDecryptionResponse {
     bytes partial_decryption = 1;
+}
+
+message PartialDecryptionShareResponse {
+    string party_id = 1;
+    bytes share = 2;
 }

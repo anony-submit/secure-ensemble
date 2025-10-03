@@ -551,3 +551,30 @@ func rotateVector(vec []complex128, rotation int) []complex128 {
 
 	return result
 }
+
+func (d *DataOwner) PerformPartialDecryptionShare(ctx context.Context, req *pb.PartialDecryptionRequest) (*pb.PartialDecryptionShareResponse, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	start := time.Now()
+	ct, err := ser.DeserializeCiphertext(req.EncryptedResult, d.mkParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deserialize encrypted result: %v", err)
+	}
+	decryptor := mkckks.NewDecryptorWithGaussianNoise(d.mkParams, 3.2, 19)
+	share := decryptor.GenShare(ct, d.sk)
+	shareBytes, err := ser.SerializePoly(share)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize share: %v", err)
+	}
+	d.timing.PartialDecryptionTime = time.Since(start)
+
+	return &pb.PartialDecryptionShareResponse{
+		PartyId: d.ownerID,
+		Share:   shareBytes,
+	}, nil
+}
+
+func (s *DataOwnerServer) PerformPartialDecryptionShare(ctx context.Context, req *pb.PartialDecryptionRequest) (*pb.PartialDecryptionShareResponse, error) {
+	return s.dataOwner.PerformPartialDecryptionShare(ctx, req)
+}

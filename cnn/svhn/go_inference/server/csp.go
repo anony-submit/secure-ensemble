@@ -18,6 +18,7 @@ import (
 
 	"github.com/anony-submit/snu-mghe/mkckks"
 	"github.com/anony-submit/snu-mghe/mkrlwe"
+	"github.com/ldsec/lattigo/v2/ring"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -220,9 +221,184 @@ func (s *CSPServer) EnrollModel(ctx context.Context, req *pb.EnrollModelRequest)
 	}, nil
 }
 
+// func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceRequest) (*pb.InferenceResponse, error) {
+// 	s.mu.Lock()
+// 	defer s.mu.Unlock()
+
+// 	transferLatency := time.Duration(time.Now().UnixNano() - req.RequestStartTime)
+// 	s.timing.ClientTransferStats.AddSample(transferLatency)
+
+// 	clientKeys := newOwnerKeySet(s.mkParams)
+// 	defer func() {
+// 		clientKeys.pkSet = nil
+// 		clientKeys.rlkSet = nil
+// 		clientKeys.rtkSet = nil
+// 	}()
+
+// 	if err := ser.AddPublicKeyFromBytes(clientKeys.pkSet, req.PublicKey, s.mkParams.Parameters); err != nil {
+// 		return nil, fmt.Errorf("failed to add client public key: %v", err)
+// 	}
+
+// 	if err := ser.AddRelinKeyFromBytes(clientKeys.rlkSet, req.RelinearizationKey, s.mkParams.Parameters); err != nil {
+// 		return nil, fmt.Errorf("failed to add client relinearization key: %v", err)
+// 	}
+
+// 	for _, rtkBytes := range req.RotationKeys {
+// 		if err := ser.AddRotationKeyFromBytes(clientKeys.rtkSet, rtkBytes, s.mkParams.Parameters); err != nil {
+// 			return nil, fmt.Errorf("failed to add client rotation key: %v", err)
+// 		}
+// 	}
+
+// 	var encInput [6]*mkckks.Ciphertext
+// 	for i := 0; i < 6; i++ {
+// 		ct, err := ser.DeserializeCiphertext(req.EncryptedInput[i], s.mkParams)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to deserialize input %d: %v", i, err)
+// 		}
+// 		encInput[i] = ct
+// 	}
+
+// 	computeStart := time.Now()
+// 	inferenceStart := time.Now()
+
+// 	ownerIDs := make([]string, 0, len(s.dataOwnerClients))
+// 	for ownerID := range s.dataOwnerClients {
+// 		ownerIDs = append(ownerIDs, ownerID)
+// 	}
+// 	sort.Strings(ownerIDs)
+
+// 	firstOwnerID := ownerIDs[0]
+// 	ownerKeys := newOwnerKeySet(s.mkParams)
+// 	if clientPK := clientKeys.pkSet.GetPublicKey("client"); clientPK != nil {
+// 		ownerKeys.pkSet.AddPublicKey(clientPK)
+// 	}
+// 	ownerKeys.rlkSet = clientKeys.rlkSet
+// 	ownerKeys.rtkSet = clientKeys.rtkSet
+
+// 	model, err := s.loadModelFromDisk(firstOwnerID)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to load model for owner %s: %v", firstOwnerID, err)
+// 	}
+
+// 	keys, err := s.loadKeysFromDisk(firstOwnerID)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to load keys for owner %s: %v", firstOwnerID, err)
+// 	}
+
+// 	if err := ser.AddPublicKeyFromBytes(ownerKeys.pkSet, keys.PublicKey, s.mkParams.Parameters); err != nil {
+// 		return nil, fmt.Errorf("failed to add owner public key: %v", err)
+// 	}
+
+// 	if err := ser.AddRelinKeyFromBytes(ownerKeys.rlkSet, keys.RelinearizationKey, s.mkParams.Parameters); err != nil {
+// 		return nil, fmt.Errorf("failed to add owner relinearization key: %v", err)
+// 	}
+
+// 	for _, rtkBytes := range keys.RotationKeys {
+// 		if err := ser.AddRotationKeyFromBytes(ownerKeys.rtkSet, rtkBytes, s.mkParams.Parameters); err != nil {
+// 			return nil, fmt.Errorf("failed to add owner rotation key: %v", err)
+// 		}
+// 	}
+
+// 	ensembleResult := s.performInferenceWithKeys(encInput, model, ownerKeys)
+// 	model = nil
+// 	ownerKeys = nil
+// 	runtime.GC()
+
+// 	for _, ownerID := range ownerIDs[1:] {
+// 		ownerKeys = newOwnerKeySet(s.mkParams)
+// 		if clientPK := clientKeys.pkSet.GetPublicKey("client"); clientPK != nil {
+// 			ownerKeys.pkSet.AddPublicKey(clientPK)
+// 		}
+// 		ownerKeys.rlkSet = clientKeys.rlkSet
+// 		ownerKeys.rtkSet = clientKeys.rtkSet
+
+// 		model, err := s.loadModelFromDisk(ownerID)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to load model for owner %s: %v", ownerID, err)
+// 		}
+
+// 		keys, err := s.loadKeysFromDisk(ownerID)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to load keys for owner %s: %v", ownerID, err)
+// 		}
+
+// 		if err := ser.AddPublicKeyFromBytes(ownerKeys.pkSet, keys.PublicKey, s.mkParams.Parameters); err != nil {
+// 			return nil, fmt.Errorf("failed to add owner public key: %v", err)
+// 		}
+
+// 		if err := ser.AddRelinKeyFromBytes(ownerKeys.rlkSet, keys.RelinearizationKey, s.mkParams.Parameters); err != nil {
+// 			return nil, fmt.Errorf("failed to add owner relinearization key: %v", err)
+// 		}
+
+// 		for _, rtkBytes := range keys.RotationKeys {
+// 			if err := ser.AddRotationKeyFromBytes(ownerKeys.rtkSet, rtkBytes, s.mkParams.Parameters); err != nil {
+// 				return nil, fmt.Errorf("failed to add owner rotation key: %v", err)
+// 			}
+// 		}
+
+// 		result := s.performInferenceWithKeys(encInput, model, ownerKeys)
+// 		ensembleResult = s.evaluator.AddNew(ensembleResult, result)
+
+// 		result = nil
+// 		model = nil
+// 		ownerKeys = nil
+// 		runtime.GC()
+// 	}
+
+// 	for i := range encInput {
+// 		encInput[i] = nil
+// 	}
+// 	runtime.GC()
+
+// 	s.timing.InferenceStats.AddSample(time.Since(inferenceStart))
+// 	s.timing.TotalComputeStats.AddSample(time.Since(computeStart))
+
+// 	decryptionStart := time.Now().UnixNano()
+// 	ensembleDecrypted := ensembleResult.CopyNew()
+// 	ensembleResult = nil
+// 	runtime.GC()
+
+// 	for _, ownerID := range ownerIDs {
+// 		resultBytes, err := ser.SerializeCiphertext(ensembleDecrypted)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to serialize result: %v", err)
+// 		}
+
+// 		partialDecBytes, err := s.dataOwnerClients[ownerID].PerformPartialDecryption(ctx, &pb.PartialDecryptionRequest{
+// 			PartyId:          ownerID,
+// 			EncryptedResult:  resultBytes,
+// 			RequestStartTime: time.Now().UnixNano(),
+// 		})
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to get partial decryption from owner %s: %v", ownerID, err)
+// 		}
+
+// 		partialDec, err := ser.DeserializeCiphertext(partialDecBytes.PartialDecryption, s.mkParams)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to deserialize partial decryption: %v", err)
+// 		}
+// 		ensembleDecrypted.Value = partialDec.Value
+// 		partialDec = nil
+// 	}
+
+// 	resultBytes, err := ser.SerializeCiphertext(ensembleDecrypted)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to serialize results: %v", err)
+// 	}
+
+// 	ensembleDecrypted = nil
+// 	runtime.GC()
+
+// 	return &pb.InferenceResponse{
+// 		EncryptedResult:             resultBytes,
+// 		DecryptionProtocolStartTime: decryptionStart,
+// 	}, nil
+// }
+
 func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceRequest) (*pb.InferenceResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// fmt.Printf("[CSP] Noise Flooding Decryption Mode with parallellism\n")
 
 	transferLatency := time.Duration(time.Now().UnixNano() - req.RequestStartTime)
 	s.timing.ClientTransferStats.AddSample(transferLatency)
@@ -237,11 +413,9 @@ func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceReque
 	if err := ser.AddPublicKeyFromBytes(clientKeys.pkSet, req.PublicKey, s.mkParams.Parameters); err != nil {
 		return nil, fmt.Errorf("failed to add client public key: %v", err)
 	}
-
 	if err := ser.AddRelinKeyFromBytes(clientKeys.rlkSet, req.RelinearizationKey, s.mkParams.Parameters); err != nil {
 		return nil, fmt.Errorf("failed to add client relinearization key: %v", err)
 	}
-
 	for _, rtkBytes := range req.RotationKeys {
 		if err := ser.AddRotationKeyFromBytes(clientKeys.rtkSet, rtkBytes, s.mkParams.Parameters); err != nil {
 			return nil, fmt.Errorf("failed to add client rotation key: %v", err)
@@ -278,20 +452,16 @@ func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceReque
 	if err != nil {
 		return nil, fmt.Errorf("failed to load model for owner %s: %v", firstOwnerID, err)
 	}
-
 	keys, err := s.loadKeysFromDisk(firstOwnerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load keys for owner %s: %v", firstOwnerID, err)
 	}
-
 	if err := ser.AddPublicKeyFromBytes(ownerKeys.pkSet, keys.PublicKey, s.mkParams.Parameters); err != nil {
 		return nil, fmt.Errorf("failed to add owner public key: %v", err)
 	}
-
 	if err := ser.AddRelinKeyFromBytes(ownerKeys.rlkSet, keys.RelinearizationKey, s.mkParams.Parameters); err != nil {
 		return nil, fmt.Errorf("failed to add owner relinearization key: %v", err)
 	}
-
 	for _, rtkBytes := range keys.RotationKeys {
 		if err := ser.AddRotationKeyFromBytes(ownerKeys.rtkSet, rtkBytes, s.mkParams.Parameters); err != nil {
 			return nil, fmt.Errorf("failed to add owner rotation key: %v", err)
@@ -315,20 +485,16 @@ func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceReque
 		if err != nil {
 			return nil, fmt.Errorf("failed to load model for owner %s: %v", ownerID, err)
 		}
-
 		keys, err := s.loadKeysFromDisk(ownerID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load keys for owner %s: %v", ownerID, err)
 		}
-
 		if err := ser.AddPublicKeyFromBytes(ownerKeys.pkSet, keys.PublicKey, s.mkParams.Parameters); err != nil {
 			return nil, fmt.Errorf("failed to add owner public key: %v", err)
 		}
-
 		if err := ser.AddRelinKeyFromBytes(ownerKeys.rlkSet, keys.RelinearizationKey, s.mkParams.Parameters); err != nil {
 			return nil, fmt.Errorf("failed to add owner relinearization key: %v", err)
 		}
-
 		for _, rtkBytes := range keys.RotationKeys {
 			if err := ser.AddRotationKeyFromBytes(ownerKeys.rtkSet, rtkBytes, s.mkParams.Parameters); err != nil {
 				return nil, fmt.Errorf("failed to add owner rotation key: %v", err)
@@ -353,40 +519,60 @@ func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceReque
 	s.timing.TotalComputeStats.AddSample(time.Since(computeStart))
 
 	decryptionStart := time.Now().UnixNano()
-	ensembleDecrypted := ensembleResult.CopyNew()
+	ctForAgg := ensembleResult.CopyNew()
 	ensembleResult = nil
 	runtime.GC()
 
-	for _, ownerID := range ownerIDs {
-		resultBytes, err := ser.SerializeCiphertext(ensembleDecrypted)
-		if err != nil {
-			return nil, fmt.Errorf("failed to serialize result: %v", err)
-		}
-
-		partialDecBytes, err := s.dataOwnerClients[ownerID].PerformPartialDecryption(ctx, &pb.PartialDecryptionRequest{
-			PartyId:          ownerID,
-			EncryptedResult:  resultBytes,
-			RequestStartTime: time.Now().UnixNano(),
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get partial decryption from owner %s: %v", ownerID, err)
-		}
-
-		partialDec, err := ser.DeserializeCiphertext(partialDecBytes.PartialDecryption, s.mkParams)
-		if err != nil {
-			return nil, fmt.Errorf("failed to deserialize partial decryption: %v", err)
-		}
-		ensembleDecrypted.Value = partialDec.Value
-		partialDec = nil
+	ctBytes, err := ser.SerializeCiphertext(ctForAgg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize result: %v", err)
 	}
 
-	resultBytes, err := ser.SerializeCiphertext(ensembleDecrypted)
+	type out struct {
+		id  string
+		res *pb.PartialDecryptionShareResponse
+		err error
+	}
+	wg := sync.WaitGroup{}
+	ch := make(chan out, len(ownerIDs))
+
+	for _, ownerID := range ownerIDs {
+		wg.Add(1)
+		go func(oid string) {
+			defer wg.Done()
+			cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			resp, err := s.dataOwnerClients[oid].PerformPartialDecryptionShare(cctx, &pb.PartialDecryptionRequest{
+				EncryptedResult:  ctBytes,
+				PartyId:          oid,
+				RequestStartTime: time.Now().UnixNano(),
+			})
+			ch <- out{id: oid, res: resp, err: err}
+		}(ownerID)
+	}
+	wg.Wait()
+	close(ch)
+
+	ringQ := s.mkParams.Parameters.RingQ()
+	shares := make(map[string]*ring.Poly, len(ownerIDs))
+	for v := range ch {
+		if v.err != nil {
+			return nil, fmt.Errorf("share request failed from %s: %v", v.id, v.err)
+		}
+		p, err := ser.DeserializePoly(v.res.Share, ringQ)
+		if err != nil {
+			return nil, fmt.Errorf("failed to deserialize share from %s: %v", v.id, err)
+		}
+		shares[v.id] = p
+	}
+
+	dec := mkckks.NewDecryptorWithGaussianNoise(s.mkParams, 3.2, 19)
+	dec.AggregateSharesAndDrop(ctForAgg, shares)
+
+	resultBytes, err := ser.SerializeCiphertext(ctForAgg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize results: %v", err)
 	}
-
-	ensembleDecrypted = nil
-	runtime.GC()
 
 	return &pb.InferenceResponse{
 		EncryptedResult:             resultBytes,

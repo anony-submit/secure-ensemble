@@ -105,7 +105,7 @@ func (c *Client) RequestInference(testData [][]float64) (*mkckks.Message, *mkckk
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// fmt.Printf("[Client] Starting inference request process...\n")
+	fmt.Printf("[Client] Starting inference request process...\n")
 
 	encryptStart := time.Now()
 	testDataBatched := logistic.CreateBatchedMatrix(testData, c.config)

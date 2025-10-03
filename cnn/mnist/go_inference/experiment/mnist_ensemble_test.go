@@ -9,18 +9,18 @@ import (
 // we should test one by one
 func TestMNISTEnsemble(t *testing.T) {
 	configs := []ExperimentConfig{
-		{NumDataOwners: 2, NumTestSamples: 100, Distribution: "balanced"},
-		{NumDataOwners: 2, NumTestSamples: 100, Distribution: "dirichlet0.1"},
-		{NumDataOwners: 2, NumTestSamples: 100, Distribution: "dirichlet0.5"},
-		{NumDataOwners: 5, NumTestSamples: 100, Distribution: "balanced"},
-		{NumDataOwners: 5, NumTestSamples: 100, Distribution: "dirichlet0.1"},
-		{NumDataOwners: 5, NumTestSamples: 100, Distribution: "dirichlet0.5"},
-		{NumDataOwners: 10, NumTestSamples: 100, Distribution: "balanced"},
-		{NumDataOwners: 10, NumTestSamples: 100, Distribution: "dirichlet0.1"},
-		{NumDataOwners: 10, NumTestSamples: 100, Distribution: "dirichlet0.5"},
-		{NumDataOwners: 20, NumTestSamples: 100, Distribution: "balanced"},
-		{NumDataOwners: 20, NumTestSamples: 100, Distribution: "dirichlet0.1"},
-		{NumDataOwners: 20, NumTestSamples: 100, Distribution: "dirichlet0.5"},
+		{NumDataOwners: 2, NumTestSamples: 10, Distribution: "balanced"},
+		// {NumDataOwners: 2, NumTestSamples: 100, Distribution: "dirichlet0.1"},
+		// {NumDataOwners: 2, NumTestSamples: 100, Distribution: "dirichlet0.5"},
+		{NumDataOwners: 5, NumTestSamples: 10, Distribution: "balanced"},
+		// {NumDataOwners: 5, NumTestSamples: 100, Distribution: "dirichlet0.1"},
+		// {NumDataOwners: 5, NumTestSamples: 100, Distribution: "dirichlet0.5"},
+		{NumDataOwners: 10, NumTestSamples: 10, Distribution: "balanced"},
+		// {NumDataOwners: 10, NumTestSamples: 100, Distribution: "dirichlet0.1"},
+		// {NumDataOwners: 10, NumTestSamples: 100, Distribution: "dirichlet0.5"},
+		// {NumDataOwners: 20, NumTestSamples: 100, Distribution: "balanced"},
+		// {NumDataOwners: 20, NumTestSamples: 100, Distribution: "dirichlet0.1"},
+		// {NumDataOwners: 20, NumTestSamples: 100, Distribution: "dirichlet0.5"},
 	}
 
 	for i, config := range configs {

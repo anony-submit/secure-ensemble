@@ -11,14 +11,17 @@ service CSPService {
   // Inference phase
   rpc RequestInference (InferenceRequest) returns (InferenceResponse) {}
   
-  // Decryption phase
-  rpc RequestPartialDecryption (PartialDecryptionRequest) returns (PartialDecryptionResponse) {}
+  // Decryption phase (share-based)
+  rpc RequestPartialDecryptionShare (PartialDecryptionRequest) returns (PartialDecryptionShareResponse) {}
 }
 
 // Data Owner Service definition
 service DataOwnerService {
-  // Partial decryption service
+  // in-place
   rpc PerformPartialDecryption (PartialDecryptionRequest) returns (PartialDecryptionResponse) {}
+  
+  // noise flooding share 
+  rpc PerformPartialDecryptionShare (PartialDecryptionRequest) returns (PartialDecryptionShareResponse) {}
 }
 
 // Data structures for model enrollment
@@ -52,7 +55,7 @@ message InferenceResponse {
   int64 decryption_start_time = 2;
 }
 
-// Data structures for partial decryption
+// Data structures for partial decryption (legacy)
 message PartialDecryptionRequest {
   bytes encrypted_result = 1;
   string party_id = 2;
@@ -61,4 +64,10 @@ message PartialDecryptionRequest {
 
 message PartialDecryptionResponse {
   bytes partial_decryption = 1;
+}
+
+// Data structures for share-based partial decryption
+message PartialDecryptionShareResponse {
+  string party_id = 1;
+  bytes share = 2; // serialized ring.Poly
 }

@@ -14,6 +14,7 @@ import (
 
 	"github.com/anony-submit/snu-mghe/mkckks"
 	"github.com/anony-submit/snu-mghe/mkrlwe"
+	"github.com/ldsec/lattigo/v2/ring"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -180,21 +181,103 @@ func (s *CSPServer) EnrollModel(ctx context.Context, req *pb.EnrollModelRequest)
 	}, nil
 }
 
+// func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceRequest) (*pb.InferenceResponse, error) {
+// 	s.mu.Lock()
+// 	defer s.mu.Unlock()
+
+// 	deserializeEnd := time.Now().UnixNano()
+// 	s.timing.ClientTransferStats.AddSample(time.Duration(deserializeEnd - req.SerializationStartTime))
+
+// 	if err := ser.AddPublicKeyFromBytes(s.pkSet, req.PublicKey, s.mkParams.Parameters); err != nil {
+// 		return nil, fmt.Errorf("failed to add client public key: %v", err)
+// 	}
+
+// 	if err := ser.AddRelinKeyFromBytes(s.rlkSet, req.RelinearizationKey, s.mkParams.Parameters); err != nil {
+// 		return nil, fmt.Errorf("failed to add client relinearization key: %v", err)
+// 	}
+
+// 	for _, rtkBytes := range req.RotationKeys {
+// 		if err := ser.AddRotationKeyFromBytes(s.rtkSet, rtkBytes, s.mkParams.Parameters); err != nil {
+// 			return nil, fmt.Errorf("failed to add client rotation key: %v", err)
+// 		}
+// 	}
+
+// 	encInput, err := ser.DeserializeCiphertext(req.EncryptedInput, s.mkParams)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to deserialize input: %v", err)
+// 	}
+
+// 	computeStart := time.Now()
+// 	inferenceStart := time.Now()
+
+// 	predictions := make([]*mkckks.Ciphertext, 0, len(s.encryptedModels))
+// 	for _, model := range s.encryptedModels {
+// 		result := s.performInference(encInput, model)
+// 		predictions = append(predictions, result)
+// 	}
+// 	s.timing.InferenceStats.AddSample(time.Since(inferenceStart))
+
+// 	ensembleStart := time.Now()
+// 	ensembleResult := s.performEnsemble(predictions)
+// 	s.timing.EnsembleStats.AddSample(time.Since(ensembleStart))
+// 	s.timing.TotalComputeStats.AddSample(time.Since(computeStart))
+
+// 	decryptionStart := time.Now().UnixNano()
+// 	ensembleDecrypted := ensembleResult.CopyNew()
+
+// 	ownerIDs := make([]string, 0, len(s.encryptedModels))
+// 	for ownerID := range s.encryptedModels {
+// 		ownerIDs = append(ownerIDs, ownerID)
+// 	}
+// 	sort.Strings(ownerIDs)
+
+// 	for _, ownerID := range ownerIDs {
+// 		ensembleResultBytes, err := ser.SerializeCiphertext(ensembleDecrypted)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to serialize result: %v", err)
+// 		}
+
+// 		serializationStart := time.Now().UnixNano()
+// 		partialDecBytes, err := s.dataOwnerClients[ownerID].PerformPartialDecryption(ctx, &pb.PartialDecryptionRequest{
+// 			PartyId:                ownerID,
+// 			EncryptedResult:        ensembleResultBytes,
+// 			SerializationStartTime: serializationStart,
+// 		})
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to get partial decryption from owner %s: %v", ownerID, err)
+// 		}
+// 		partialDec, err := ser.DeserializeCiphertext(partialDecBytes.PartialDecryption, s.mkParams)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to deserialize partial decryption: %v", err)
+// 		}
+// 		ensembleDecrypted.Ciphertext.Value = partialDec.Value
+// 	}
+
+// 	resultBytes, err := ser.SerializeCiphertext(ensembleDecrypted)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to serialize results: %v", err)
+// 	}
+
+// 	return &pb.InferenceResponse{
+// 		EncryptedResult:             resultBytes,
+// 		DecryptionProtocolStartTime: decryptionStart,
+// 	}, nil
+// }
+
 func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceRequest) (*pb.InferenceResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// fmt.Printf("[CSP] Noise Flooding Decryption Mode with parallellism\n")
 	deserializeEnd := time.Now().UnixNano()
 	s.timing.ClientTransferStats.AddSample(time.Duration(deserializeEnd - req.SerializationStartTime))
 
 	if err := ser.AddPublicKeyFromBytes(s.pkSet, req.PublicKey, s.mkParams.Parameters); err != nil {
 		return nil, fmt.Errorf("failed to add client public key: %v", err)
 	}
-
 	if err := ser.AddRelinKeyFromBytes(s.rlkSet, req.RelinearizationKey, s.mkParams.Parameters); err != nil {
 		return nil, fmt.Errorf("failed to add client relinearization key: %v", err)
 	}
-
 	for _, rtkBytes := range req.RotationKeys {
 		if err := ser.AddRotationKeyFromBytes(s.rtkSet, rtkBytes, s.mkParams.Parameters); err != nil {
 			return nil, fmt.Errorf("failed to add client rotation key: %v", err)
@@ -222,7 +305,7 @@ func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceReque
 	s.timing.TotalComputeStats.AddSample(time.Since(computeStart))
 
 	decryptionStart := time.Now().UnixNano()
-	ensembleDecrypted := ensembleResult.CopyNew()
+	ctForAgg := ensembleResult.CopyNew()
 
 	ownerIDs := make([]string, 0, len(s.encryptedModels))
 	for ownerID := range s.encryptedModels {
@@ -230,29 +313,53 @@ func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceReque
 	}
 	sort.Strings(ownerIDs)
 
-	for _, ownerID := range ownerIDs {
-		ensembleResultBytes, err := ser.SerializeCiphertext(ensembleDecrypted)
-		if err != nil {
-			return nil, fmt.Errorf("failed to serialize result: %v", err)
-		}
-
-		serializationStart := time.Now().UnixNano()
-		partialDecBytes, err := s.dataOwnerClients[ownerID].PerformPartialDecryption(ctx, &pb.PartialDecryptionRequest{
-			PartyId:                ownerID,
-			EncryptedResult:        ensembleResultBytes,
-			SerializationStartTime: serializationStart,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get partial decryption from owner %s: %v", ownerID, err)
-		}
-		partialDec, err := ser.DeserializeCiphertext(partialDecBytes.PartialDecryption, s.mkParams)
-		if err != nil {
-			return nil, fmt.Errorf("failed to deserialize partial decryption: %v", err)
-		}
-		ensembleDecrypted.Ciphertext.Value = partialDec.Value
+	ctBytes, err := ser.SerializeCiphertext(ctForAgg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize result: %v", err)
 	}
 
-	resultBytes, err := ser.SerializeCiphertext(ensembleDecrypted)
+	type out struct {
+		id  string
+		res *pb.PartialDecryptionShareResponse
+		err error
+	}
+	wg := sync.WaitGroup{}
+	ch := make(chan out, len(ownerIDs))
+
+	for _, ownerID := range ownerIDs {
+		wg.Add(1)
+		go func(oid string) {
+			defer wg.Done()
+			cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			resp, err := s.dataOwnerClients[oid].PerformPartialDecryptionShare(cctx, &pb.PartialDecryptionRequest{
+				EncryptedResult:        ctBytes,
+				PartyId:                oid,
+				SerializationStartTime: time.Now().UnixNano(),
+			})
+			ch <- out{id: oid, res: resp, err: err}
+		}(ownerID)
+	}
+	wg.Wait()
+	close(ch)
+
+	ringQ := s.mkParams.RingQ()
+	shares := make(map[string]*ring.Poly, len(ownerIDs))
+	for v := range ch {
+		if v.err != nil {
+			return nil, fmt.Errorf("share request failed from %s: %v", v.id, v.err)
+		}
+		p, err := ser.DeserializePoly(v.res.Share, ringQ)
+		if err != nil {
+			return nil, fmt.Errorf("failed to deserialize share from %s: %v", v.id, err)
+		}
+		shares[v.id] = p
+	}
+
+	dec := mkckks.NewDecryptor(s.mkParams)
+	dec.AggregateSharesAndDrop(ctForAgg, shares)
+
+	resultBytes, err := ser.SerializeCiphertext(ctForAgg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize results: %v", err)
 	}

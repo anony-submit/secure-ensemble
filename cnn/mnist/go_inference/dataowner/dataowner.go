@@ -298,3 +298,30 @@ func (d *DataOwner) StartServer(address string) (func(), error) {
 func (s *DataOwnerServer) PerformPartialDecryption(ctx context.Context, req *pb.PartialDecryptionRequest) (*pb.PartialDecryptionResponse, error) {
 	return s.dataOwner.PerformPartialDecryption(ctx, req)
 }
+
+func (d *DataOwner) PerformPartialDecryptionShare(ctx context.Context, req *pb.PartialDecryptionRequest) (*pb.PartialDecryptionShareResponse, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	encResult, err := ser.DeserializeCiphertext(req.EncryptedResult, d.mkParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deserialize encrypted result: %v", err)
+	}
+
+	decryptor := mkckks.NewDecryptorWithGaussianNoise(d.mkParams, 3.2, 19)
+	share := decryptor.GenShare(encResult, d.sk)
+
+	shareBytes, err := ser.SerializePoly(share)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize share: %v", err)
+	}
+
+	return &pb.PartialDecryptionShareResponse{
+		PartyId: req.PartyId,
+		Share:   shareBytes,
+	}, nil
+}
+
+func (s *DataOwnerServer) PerformPartialDecryptionShare(ctx context.Context, req *pb.PartialDecryptionRequest) (*pb.PartialDecryptionShareResponse, error) {
+	return s.dataOwner.PerformPartialDecryptionShare(ctx, req)
+}

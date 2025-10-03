@@ -15,6 +15,7 @@ import (
 
 	"github.com/anony-submit/snu-mghe/mkckks"
 	"github.com/anony-submit/snu-mghe/mkrlwe"
+	"github.com/ldsec/lattigo/v2/ring"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -306,12 +307,121 @@ func (s *CSPServer) performInference(encModel *EncryptedModel, encTestData *mkck
 	return s.evaluator.AddNew(result, encModel.EncIntercept), nil
 }
 
+// func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceRequest) (*pb.InferenceResponse, error) {
+//    s.mu.Lock()
+//    defer s.mu.Unlock()
+
+//    // fmt.Printf("[CSP] Processing inference request from client %s\n", req.ClientId)
+
+//    if err := serialization.AddPublicKeyFromBytes(s.pkSet, req.PublicKey, s.mkParams.Parameters); err != nil {
+//       return nil, fmt.Errorf("failed to add client public key: %v", err)
+//    }
+//    if err := serialization.AddRelinKeyFromBytes(s.rlkSet, req.RelinearizationKey, s.mkParams.Parameters); err != nil {
+//       return nil, fmt.Errorf("failed to add client relinearization key: %v", err)
+//    }
+//    for _, rtkBytes := range req.RotationKeys {
+//       if err := serialization.AddRotationKeyFromBytes(s.rtkSet, rtkBytes, s.mkParams.Parameters); err != nil {
+//          return nil, fmt.Errorf("failed to add client rotation key: %v", err)
+//       }
+//    }
+
+//    encTestData, err := serialization.DeserializeCiphertext(req.EncryptedData, s.mkParams)
+//    if err != nil {
+//       return nil, fmt.Errorf("failed to deserialize test data: %v", err)
+//    }
+
+//    deserializeEnd := time.Now().UnixNano()
+//    s.timing.ClientDataTransfer = time.Duration(deserializeEnd - req.SerializationStartTime)
+
+//    svStart := time.Now()
+//    softVotingResult, err := s.performSoftVoting(encTestData)
+//    if err != nil {
+//       return nil, fmt.Errorf("soft voting failed: %v", err)
+//    }
+//    s.timing.SoftVotingCompute = time.Since(svStart)
+
+//    lsvStart := time.Now()
+//    logitSoftVotingResult, err := s.performLogitSoftVoting(encTestData)
+//    if err != nil {
+//       return nil, fmt.Errorf("logit soft voting failed: %v", err)
+//    }
+//    s.timing.LogitSoftVotingCompute = time.Since(lsvStart)
+
+//    decryptionStart := time.Now().UnixNano()
+//    softVotingDecrypted := softVotingResult.CopyNew()
+//    logitSoftVotingDecrypted := logitSoftVotingResult.CopyNew()
+
+//    ownerIDs := make([]string, 0, len(s.encryptedModels))
+//    for ownerID := range s.encryptedModels {
+//       ownerIDs = append(ownerIDs, ownerID)
+//    }
+//    sort.Strings(ownerIDs)
+
+//    for _, ownerID := range ownerIDs {
+//       // fmt.Printf("[CSP] Requesting partial decryption from owner %s\n", ownerID)
+
+//       softVotingBytes, err := serialization.SerializeCiphertext(softVotingDecrypted)
+//       if err != nil {
+//          return nil, fmt.Errorf("failed to serialize soft voting result: %v", err)
+//       }
+
+//       serializationStart := time.Now().UnixNano()
+//       softDecResp, err := s.dataOwnerClients[ownerID].PerformPartialDecryption(ctx, &pb.PartialDecryptionRequest{
+//          PartyId:                ownerID,
+//          EncryptedResult:        softVotingBytes,
+//          SerializationStartTime: serializationStart,
+//       })
+//       if err != nil {
+//          return nil, fmt.Errorf("failed to get soft voting partial decryption from owner %s: %v", ownerID, err)
+//       }
+
+//       logitSoftVotingBytes, err := serialization.SerializeCiphertext(logitSoftVotingDecrypted)
+//       if err != nil {
+//          return nil, fmt.Errorf("failed to serialize logit soft voting result: %v", err)
+//       }
+
+//       serializationStart = time.Now().UnixNano()
+//       logitDecResp, err := s.dataOwnerClients[ownerID].PerformPartialDecryption(ctx, &pb.PartialDecryptionRequest{
+//          PartyId:                ownerID,
+//          EncryptedResult:        logitSoftVotingBytes,
+//          SerializationStartTime: serializationStart,
+//       })
+//       if err != nil {
+//          return nil, fmt.Errorf("failed to get logit soft voting partial decryption from owner %s: %v", ownerID, err)
+//       }
+
+//       softPartialDec, err := serialization.DeserializeCiphertext(softDecResp.PartialDecryption, s.mkParams)
+//       if err != nil {
+//          return nil, fmt.Errorf("failed to deserialize soft voting partial decryption: %v", err)
+//       }
+
+//       logitPartialDec, err := serialization.DeserializeCiphertext(logitDecResp.PartialDecryption, s.mkParams)
+//       if err != nil {
+//          return nil, fmt.Errorf("failed to deserialize logit soft voting partial decryption: %v", err)
+//       }
+
+//       softVotingDecrypted.Ciphertext.Value = softPartialDec.Value
+//       logitSoftVotingDecrypted.Ciphertext.Value = logitPartialDec.Value
+
+//       // fmt.Printf("[CSP] Received partial decryption from owner %s\n", ownerID)
+//    }
+
+//    resultBytes, err := serialization.SerializeVotingResults(softVotingDecrypted, logitSoftVotingDecrypted, nil)
+//    if err != nil {
+//       return nil, fmt.Errorf("failed to serialize results: %v", err)
+//    }
+
+//    return &pb.InferenceResponse{
+//       EncryptedResult:     resultBytes,
+//       DecryptionStartTime: decryptionStart,
+//    }, nil
+// }
+
 func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceRequest) (*pb.InferenceResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// fmt.Printf("[CSP] Processing inference request from client %s\n", req.ClientId)
-
+	// fmt.Printf("[CSP] Noise Flooding Decryption Model\n")
 	if err := serialization.AddPublicKeyFromBytes(s.pkSet, req.PublicKey, s.mkParams.Parameters); err != nil {
 		return nil, fmt.Errorf("failed to add client public key: %v", err)
 	}
@@ -328,7 +438,6 @@ func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceReque
 	if err != nil {
 		return nil, fmt.Errorf("failed to deserialize test data: %v", err)
 	}
-
 	deserializeEnd := time.Now().UnixNano()
 	s.timing.ClientDataTransfer = time.Duration(deserializeEnd - req.SerializationStartTime)
 
@@ -356,54 +465,83 @@ func (s *CSPServer) RequestInference(ctx context.Context, req *pb.InferenceReque
 	}
 	sort.Strings(ownerIDs)
 
-	for _, ownerID := range ownerIDs {
-		// fmt.Printf("[CSP] Requesting partial decryption from owner %s\n", ownerID)
-
-		softVotingBytes, err := serialization.SerializeCiphertext(softVotingDecrypted)
-		if err != nil {
-			return nil, fmt.Errorf("failed to serialize soft voting result: %v", err)
-		}
-
-		serializationStart := time.Now().UnixNano()
-		softDecResp, err := s.dataOwnerClients[ownerID].PerformPartialDecryption(ctx, &pb.PartialDecryptionRequest{
-			PartyId:                ownerID,
-			EncryptedResult:        softVotingBytes,
-			SerializationStartTime: serializationStart,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get soft voting partial decryption from owner %s: %v", ownerID, err)
-		}
-
-		logitSoftVotingBytes, err := serialization.SerializeCiphertext(logitSoftVotingDecrypted)
-		if err != nil {
-			return nil, fmt.Errorf("failed to serialize logit soft voting result: %v", err)
-		}
-
-		serializationStart = time.Now().UnixNano()
-		logitDecResp, err := s.dataOwnerClients[ownerID].PerformPartialDecryption(ctx, &pb.PartialDecryptionRequest{
-			PartyId:                ownerID,
-			EncryptedResult:        logitSoftVotingBytes,
-			SerializationStartTime: serializationStart,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get logit soft voting partial decryption from owner %s: %v", ownerID, err)
-		}
-
-		softPartialDec, err := serialization.DeserializeCiphertext(softDecResp.PartialDecryption, s.mkParams)
-		if err != nil {
-			return nil, fmt.Errorf("failed to deserialize soft voting partial decryption: %v", err)
-		}
-
-		logitPartialDec, err := serialization.DeserializeCiphertext(logitDecResp.PartialDecryption, s.mkParams)
-		if err != nil {
-			return nil, fmt.Errorf("failed to deserialize logit soft voting partial decryption: %v", err)
-		}
-
-		softVotingDecrypted.Ciphertext.Value = softPartialDec.Value
-		logitSoftVotingDecrypted.Ciphertext.Value = logitPartialDec.Value
-
-		// fmt.Printf("[CSP] Received partial decryption from owner %s\n", ownerID)
+	softBytes, err := serialization.SerializeCiphertext(softVotingDecrypted)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize soft voting ciphertext: %v", err)
 	}
+	logitBytes, err := serialization.SerializeCiphertext(logitSoftVotingDecrypted)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize logit soft voting ciphertext: %v", err)
+	}
+
+	type item struct {
+		id    string
+		kind  string
+		share []byte
+		err   error
+	}
+	ch := make(chan item, len(ownerIDs)*2)
+	wg := sync.WaitGroup{}
+
+	for _, ownerID := range ownerIDs {
+		wg.Add(1)
+		go func(oid string) {
+			defer wg.Done()
+			cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			resp, err := s.dataOwnerClients[oid].PerformPartialDecryptionShare(cctx, &pb.PartialDecryptionRequest{
+				PartyId:         oid,
+				EncryptedResult: softBytes,
+			})
+			if err != nil {
+				ch <- item{id: oid, kind: "soft", err: err}
+				return
+			}
+			ch <- item{id: oid, kind: "soft", share: resp.Share, err: nil}
+		}(ownerID)
+
+		wg.Add(1)
+		go func(oid string) {
+			defer wg.Done()
+			cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			resp, err := s.dataOwnerClients[oid].PerformPartialDecryptionShare(cctx, &pb.PartialDecryptionRequest{
+				PartyId:         oid,
+				EncryptedResult: logitBytes,
+			})
+			if err != nil {
+				ch <- item{id: oid, kind: "logit", err: err}
+				return
+			}
+			ch <- item{id: oid, kind: "logit", share: resp.Share, err: nil}
+		}(ownerID)
+	}
+
+	wg.Wait()
+	close(ch)
+
+	ringQ := s.mkParams.RingQ()
+	softShares := make(map[string]*ring.Poly, len(ownerIDs))
+	logitShares := make(map[string]*ring.Poly, len(ownerIDs))
+
+	for it := range ch {
+		if it.err != nil {
+			return nil, fmt.Errorf("share request failed from %s (%s): %v", it.id, it.kind, it.err)
+		}
+		p, err := serialization.DeserializePoly(it.share, ringQ)
+		if err != nil {
+			return nil, fmt.Errorf("failed to deserialize %s share from %s: %v", it.kind, it.id, err)
+		}
+		if it.kind == "soft" {
+			softShares[it.id] = p
+		} else {
+			logitShares[it.id] = p
+		}
+	}
+
+	dec := mkckks.NewDecryptor(s.mkParams)
+	dec.AggregateSharesAndDrop(softVotingDecrypted, softShares)
+	dec.AggregateSharesAndDrop(logitSoftVotingDecrypted, logitShares)
 
 	resultBytes, err := serialization.SerializeVotingResults(softVotingDecrypted, logitSoftVotingDecrypted, nil)
 	if err != nil {

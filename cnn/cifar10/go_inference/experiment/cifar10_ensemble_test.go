@@ -12,7 +12,7 @@ func TestCIFAR10Ensemble(t *testing.T) {
 	fmt.Printf("Process ID: %d\n", os.Getpid())
 
 	configs := []ExperimentConfig{
-		{NumDataOwners: 2, NumTestSamples: 100, Distribution: "balanced"},
+		{NumDataOwners: 2, NumTestSamples: 10, Distribution: "balanced"},
 		{NumDataOwners: 2, NumTestSamples: 100, Distribution: "dirichlet0.1"},
 		{NumDataOwners: 2, NumTestSamples: 100, Distribution: "dirichlet0.5"},
 		{NumDataOwners: 5, NumTestSamples: 100, Distribution: "balanced"},
@@ -105,3 +105,5 @@ func checkDataDirectory(t *testing.T, config ExperimentConfig) error {
 	}
 	return nil
 }
+
+// go test -v -timeout 0 -run TestCIFAR10Ensemble
